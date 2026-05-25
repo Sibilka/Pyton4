@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+from telegram import ReplyKeyboardMarkup, Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+TOKEN = "Токен"  
+
+BUTTONS = [["2", "5", "10", "16", "32", "64"], ["/help"]]
+keyboard = ReplyKeyboardMarkup(BUTTONS, resize_keyboard=True)
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    name = update.effective_user.first_name or "пользователь"
+    await update.message.reply_text(f"Привет, {name}!\nВведите число или нажмите кнопку.", reply_markup=keyboard)
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Отправьте целое неотрицательное число, я переведу его в двоичный код.\nПример: 5 → 101")
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.strip()
+    if text == "/help":
+        await help_command(update, context)
+        return
+    try:
+        num = int(text)
+        if num < 0:
+            await update.message.reply_text("Введите неотрицательное число.")
+            return
+        binary = bin(num)[2:] if num != 0 else "0"
+        await update.message.reply_text(
+            f"Десятичное: {num}\nДвоичный код: {binary}",
+            reply_markup=keyboard
+        )
+    except ValueError:
+        await update.message.reply_text("Ошибка: отправьте целое число или нажмите кнопку.", reply_markup=keyboard)
+
+def main():
+    app = Application.builder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
